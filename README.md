@@ -4,7 +4,7 @@
 
 ---
 
-## 📋 Daftar Isi
+## Daftar Isi
 
 - [Tentang Project](#-tentang-project)
 - [Arsitektur Sistem](#-arsitektur-sistem)
@@ -19,7 +19,7 @@
 
 ---
 
-## 📌 Tentang Project
+## Tentang Project
 
 Project ini merupakan simulasi lingkungan SOC yang dibangun untuk keperluan portofolio sebagai **SOC Analyst**. Lab ini mensimulasikan skenario nyata serangan brute force SSH terhadap sistem Windows, mendeteksinya menggunakan Wazuh SIEM, lalu merespons secara otomatis menggunakan kombinasi Python, Claude AI, dan Wazuh Active Response.
 
@@ -31,7 +31,7 @@ Project ini merupakan simulasi lingkungan SOC yang dibangun untuk keperluan port
 
 ---
 
-## 🏗️ Arsitektur Sistem
+## Arsitektur Sistem
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -117,41 +117,41 @@ Wazuh Agent ──────► Wazuh Manager
 
 ---
 
-## ✨ Fitur Utama
+## Fitur Utama
 
-### 1. 🔍 Deteksi Otomatis
+### 1. Deteksi Otomatis
 - Monitoring alert Wazuh tiap 5 menit via crontab
 - Deteksi brute force SSH berdasarkan rule ID Windows (`60122`, `60115`)
 - Skip otomatis jika tidak ada alert baru (anti-spam)
 
-### 2. ⚡ Auto Response
+### 2. Auto Response
 - Block IP attacker otomatis via **Wazuh Active Response** (`firewall-drop`, timeout 600 detik)
 - Trigger hanya untuk severity HIGH dan CRITICAL
 
-### 3. 📊 Severity Scoring
+### 3. Severity Scoring
 | Level | Kondisi |
 |-------|---------|
 | 🔴 CRITICAL | ≥ 10 percobaan ATAU account locked out |
 | 🟠 HIGH | ≥ 5 percobaan |
 | 🟡 MEDIUM | < 5 percobaan |
 
-### 4. 🤖 AI Investigation Report
+### 4. AI Investigation Report
 - Integrasi **Claude AI (Anthropic)** untuk analisis mendalam
 - Laporan mencakup: Executive Summary, Detail Insiden, MITRE ATT&CK Mapping, Rekomendasi
 - Output dalam format Markdown profesional
 
-### 5. 📱 Notifikasi Telegram Real-time
+### 5. Notifikasi Telegram Real-time
 - Notifikasi otomatis ke Telegram Bot saat ada serangan terdeteksi
 - Ringkasan: Source IP, Attempts, Severity, Status lockout, Action yang diambil
 
-### 6. 🖥️ Dashboard Web Real-time
+### 6. Dashboard Web Real-time
 - Dashboard berbasis **Flask** dengan auto-refresh tiap 30 detik
 - Menampilkan: Summary cards, Attack timeline chart, IP analysis table, Recent alerts
 - Akses via browser: `http://192.168.1.10:5000`
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Komponen | Teknologi |
 |----------|-----------|
@@ -167,7 +167,7 @@ Wazuh Agent ──────► Wazuh Manager
 
 ---
 
-## 📁 Struktur Project
+## Struktur Project
 
 ```
 soc-project/
@@ -186,7 +186,7 @@ soc-project/
 
 ---
 
-## ⚙️ Setup & Instalasi
+## Setup & Instalasi
 
 ### Prerequisites
 - VirtualBox
@@ -269,7 +269,7 @@ sudo systemctl restart wazuh-manager
 
 ---
 
-## 🚀 Cara Penggunaan
+## Cara Penggunaan
 
 ### Jalankan All-in-One Script
 
@@ -289,7 +289,7 @@ python3 dashboard.py
 ### Simulasi Serangan (dari Kali Linux)
 
 ```bash
-hydra -l wazuh -P /tmp/passlist.txt ssh://192.168.1.11 -t 4 -V
+hydra -l wazuh -P pass.txt ssh://192.168.1.11 -t 4 -V
 ```
 
 ### Monitor Log Cron
@@ -300,15 +300,17 @@ tail -f /home/wazuh/soc-project/logs/cron.log
 
 ---
 
-## 📸 Demo
+## Demo
 
 ### Dashboard Web Real-time
 > Screenshot dashboard menampilkan summary cards, attack timeline, dan IP analysis table.
-> *(Tambahkan screenshot dashboard di sini)*
+> <img width="2841" height="1560" alt="image" src="https://github.com/user-attachments/assets/59efd442-ff11-4a90-8908-767fa477836b" />
+
 
 ### Notifikasi Telegram
 > Notifikasi otomatis masuk ke Telegram saat serangan terdeteksi.
-> *(Tambahkan screenshot notifikasi Telegram di sini)*
+> ![WhatsApp Image 2026-03-17 at 11 58 54](https://github.com/user-attachments/assets/162ba56a-a006-4e73-a760-2285b893b9f4)
+
 
 ### Sample AI Investigation Report
 
@@ -333,7 +335,7 @@ Account target berhasil dikunci otomatis.
 
 ---
 
-## 📈 Hasil & Temuan
+## Hasil & Temuan
 
 Selama lab berlangsung, sistem berhasil:
 
@@ -354,12 +356,12 @@ Selama lab berlangsung, sistem berhasil:
 
 ---
 
-## 📬 Kontak
+## Kontak
 
-Dibuat oleh **KaiX** sebagai bagian dari SOC Analyst Portfolio Lab.
+Dibuat oleh **saya sendiri** sebagai bagian dari SOC Analyst Portfolio Lab.
 
-- GitHub: [github.com/username](https://github.com/username)
-- LinkedIn: [linkedin.com/in/username](https://linkedin.com/in/username)
+- GitHub: [github.com/username](https://github.com/humanbetired)
+- LinkedIn: [linkedin.com/in/username](https://linkedin.com/in/<soon>)
 
 ---
 
