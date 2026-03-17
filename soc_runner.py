@@ -154,7 +154,7 @@ def print_alert_report(ip_data, total):
         print(f"     Source IP   : {ip}")
         print(f"     Attempts    : {info['count']}")
         print(f"     Target user : {users}")
-        print(f"     Locked out  : {'YES ⚠️' if info['locked'] else 'No'}")
+        print(f"     Locked out  : {'YES' if info['locked'] else 'No'}")
         print(f"     First seen  : {info['first_seen']}")
         print(f"     Last seen   : {info['last_seen']}")
         print(f"  {'─'*54}")
@@ -269,10 +269,10 @@ def send_telegram(message):
 
 def build_telegram_message(ip_data, total, blocked):
     lines = []
-    lines.append("🚨 *WAZUH SOC ALERT*")
-    lines.append(f"🕐 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    lines.append("*WAZUH SOC ALERT*")
+    lines.append(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     lines.append("")
-    lines.append(f"📊 *Summary*")
+    lines.append(f"*Summary*")
     lines.append(f"• Total attempts : `{total}`")
     lines.append(f"• Unique IPs     : `{len(ip_data)}`")
     lines.append(f"• IPs diblok     : `{len(blocked)}`")
@@ -285,7 +285,7 @@ def build_telegram_message(ip_data, total, blocked):
         lines.append(f"{icon} *{severity}* — `{ip}`")
         lines.append(f"• Attempts   : `{info['count']}`")
         lines.append(f"• Target     : `{users}`")
-        lines.append(f"• Locked out : `{'YES ⚠️' if info['locked'] else 'No'}`")
+        lines.append(f"• Locked out : `{'YES' if info['locked'] else 'No'}`")
         lines.append(f"• Action     : `{'BLOCKED' if ip in blocked else 'MONITOR'}`")
         lines.append("")
 
