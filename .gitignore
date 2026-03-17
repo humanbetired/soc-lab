@@ -1,0 +1,20 @@
+# Venv
+bin/
+lib/
+lib64/
+include/
+share/
+pyvenv.cfg
+
+# Logs & reports
+logs/
+reports/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Secrets
+.env
+*.key
