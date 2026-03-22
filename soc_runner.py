@@ -101,10 +101,58 @@ def get_alerts():
                 alerts_smb.append(a)
             except: pass
 
-    ok(f"{len(alerts_ssh)} SSH | {len(alerts_web)} web | {len(alerts_privesc)} privesc | {len(alerts_smb)} SMB alert")
-    return alerts_ssh + alerts_web + alerts_privesc + alerts_smb
+    rdp_alerts = get_rdp_alerts()
+
+    ok(f"{len(alerts_ssh)} SSH | {len(alerts_web)} web | {len(alerts_privesc)} privesc | {len(alerts_smb)} SMB | {len(rdp_alerts)} RDP alert")
+    return alerts_ssh + alerts_web + alerts_privesc + alerts_smb + rdp_alerts
 
 # ─── STEP 3: PARSE & TRIAGE ──────────────────────────────────
+def get_rdp_alerts():
+    """Ambil alert RDP brute force — logon type 3 dari rule 60122."""
+    result = subprocess.run(
+        ['sudo', 'grep', '-E', '"id":"60122"|"id":"60115"', ALERT_LOG],
+        capture_output=True, text=True
+    )
+    alerts = []
+    for line in result.stdout.strip().split('\n'):
+        if line:
+            try:
+                a = json.loads(line)
+                logon_type = a.get('data',{}).get('win',{}).get('eventdata',{}).get('logonType','')
+                if logon_type == '3':
+                    a['_attack_type'] = 'rdp'
+                    alerts.append(a)
+            except: pass
+    return alerts
+
+def parse_rdp_alerts(alerts):
+    """Parse RDP brute force alerts."""
+    ip_data = {}
+    for alert in [a for a in alerts if a.get('_attack_type') == 'rdp']:
+        eventdata = alert.get('data',{}).get('win',{}).get('eventdata',{})
+        rule_id   = alert.get('rule',{}).get('id','')
+        timestamp = alert.get('timestamp','')
+        username  = eventdata.get('targetUserName') or 'Unknown'
+        src_ip    = eventdata.get('ipAddress') or eventdata.get('sourceNetworkAddress') or '192.168.1.12'
+
+        if src_ip not in ip_data:
+            ip_data[src_ip] = {
+                'count':      0,
+                'locked':     False,
+                'usernames':  set(),
+                'first_seen': timestamp,
+                'last_seen':  timestamp,
+            }
+        ip_data[src_ip]['count'] += 1
+        ip_data[src_ip]['usernames'].add(username)
+        ip_data[src_ip]['last_seen'] = timestamp
+        if rule_id == '60115':
+            ip_data[src_ip]['locked'] = True
+
+    for ip in ip_data:
+        ip_data[ip]['usernames'] = list(ip_data[ip]['usernames'])
+    return ip_data
+
 def parse_alerts(alerts):
     step("Melakukan triage alert...")
     ip_data = {}
@@ -543,6 +591,26 @@ if __name__ == "__main__":
             print(f"     Users       : {users}")
             print(f"     Shares      : {shares}")
             print(f"     Anonymous   : {'YES ⚠️' if info['anonymous'] else 'No'}")
+            print(f"     First seen  : {info['first_seen'][:19]}")
+            print(f"     Last seen   : {info['last_seen'][:19]}")
+            print(f"  {'─'*54}")
+
+    # RDP report
+    rdp_data = parse_rdp_alerts(alerts)
+    if rdp_data:
+        print(f"\n{'='*62}")
+        print(f"  RDP BRUTE FORCE REPORT")
+        print(f"{'='*62}")
+        for ip, info in rdp_data.items():
+            severity = "CRITICAL" if info['locked'] or info['count']>=10 else "HIGH" if info['count']>=5 else "MEDIUM"
+            icon = "🔴" if severity == "CRITICAL" else "🟠" if severity == "HIGH" else "🟡"
+            users = ', '.join(info['usernames'][:3])
+            print(f"\n  {icon}  Severity    : {severity}")
+            print(f"     Source IP   : {ip}")
+            print(f"     Attempts    : {info['count']}")
+            print(f"     Target user : {users}")
+            print(f"     Locked out  : {'YES ⚠️' if info['locked'] else 'No'}")
+            print(f"     Protocol    : RDP (port 3389)")
             print(f"     First seen  : {info['first_seen'][:19]}")
             print(f"     Last seen   : {info['last_seen'][:19]}")
             print(f"  {'─'*54}")

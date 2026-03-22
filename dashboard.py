@@ -35,6 +35,21 @@ def get_privesc_alerts():
 def get_smb_alerts():
     return grep_alerts('"id":"92652"|"id":"60104"|"id":"60205"')
 
+def get_rdp_alerts():
+    result = subprocess.run(
+        ['sudo', 'grep', '-E', '"id":"60122"|"id":"60115"', ALERT_LOG],
+        capture_output=True, text=True)
+    alerts = []
+    for line in result.stdout.strip().split('\n'):
+        if line:
+            try:
+                a = json.loads(line)
+                logon_type = a.get('data',{}).get('win',{}).get('eventdata',{}).get('logonType','')
+                if logon_type == '3':
+                    alerts.append(a)
+            except: pass
+    return alerts
+
 @app.route('/api/stats')
 def api_stats():
     try:
@@ -42,6 +57,7 @@ def api_stats():
         web_alerts = grep_alerts('"id":"31103"|"id":"31104"|"id":"31105"|"id":"31152"|"id":"31170"|"id":"31171"')
         privesc_alerts = get_privesc_alerts()
         smb_alerts = get_smb_alerts()
+        rdp_alerts = get_rdp_alerts()
         all_alerts = grep_alerts('"Windows-Target"')
 
         def parse_ip(alerts, key_fn):
@@ -141,6 +157,34 @@ def api_stats():
                 'last': info['last'][:19].replace('T',' '),
             })
 
+        # Parse RDP
+        rdp_ip = {}
+        rdp_tl = defaultdict(int)
+        for a in rdp_alerts:
+            eventdata = a.get('data',{}).get('win',{}).get('eventdata',{})
+            src = eventdata.get('ipAddress') or eventdata.get('sourceNetworkAddress') or '192.168.1.12'
+            user = eventdata.get('targetUserName') or 'Unknown'
+            ts = a.get('timestamp','')
+            rid = a.get('rule',{}).get('id','')
+            if ts: rdp_tl[ts[:13]] += 1
+            if src not in rdp_ip:
+                rdp_ip[src] = {'count':0,'first':ts,'last':ts,'users':set(),'locked':False}
+            rdp_ip[src]['count'] += 1
+            rdp_ip[src]['last'] = ts
+            rdp_ip[src]['users'].add(user)
+            if rid == '60115': rdp_ip[src]['locked'] = True
+
+        rdp_table = []
+        for ip, info in sorted(rdp_ip.items(), key=lambda x: x[1]['count'], reverse=True):
+            sev = 'CRITICAL' if info['locked'] or info['count']>=10 else 'HIGH' if info['count']>=5 else 'MEDIUM'
+            rdp_table.append({
+                'ip': ip, 'count': info['count'], 'severity': sev,
+                'users': ', '.join(list(info['users'])[:3]),
+                'locked': info['locked'],
+                'first': info['first'][:19].replace('T',' '),
+                'last': info['last'][:19].replace('T',' '),
+            })
+
         return jsonify({
             'status':'ok',
             'updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -154,6 +198,9 @@ def api_stats():
             'smb': {'total':len(smb_alerts),'unique':len(smb_ip),
                     'timeline':dict(sorted(smb_tl.items())),
                     'table':smb_table},
+            'rdp': {'total':len(rdp_alerts),'unique':len(rdp_ip),
+                    'timeline':dict(sorted(rdp_tl.items())),
+                    'table':rdp_table},
             'recent': recent,
         })
     except Exception as e:
@@ -221,6 +268,7 @@ tr:hover td{background:#1c2128}
     <div class="tab" onclick="switchTab('web',this)">🌐 Web Attacks</div>
     <div class="tab" onclick="switchTab('privesc',this)">⚡ Privilege Escalation</div>
     <div class="tab" onclick="switchTab('smb',this)">🗂 SMB Attack</div>
+    <div class="tab" onclick="switchTab('rdp',this)">🖥 RDP Brute Force</div>
     <div class="tab" onclick="switchTab('recent',this)">🕐 Recent Alerts</div>
   </div>
 
@@ -288,6 +336,23 @@ tr:hover td{background:#1c2128}
       <div class="panel"><h2>IP table</h2>
         <table><thead><tr><th>IP</th><th>Events</th><th>Severity</th><th>Shares</th></tr></thead>
         <tbody id="smb-table"><tr><td colspan="4" style="color:#8b949e;text-align:center">Memuat...</td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- RDP TAB -->
+  <div id="tab-rdp" class="tab-content">
+    <div class="cards">
+      <div class="card red"><div class="lbl">Total Attempts</div><div class="val" id="rdp-total">—</div></div>
+      <div class="card orange"><div class="lbl">Unique IPs</div><div class="val" id="rdp-ips">—</div></div>
+      <div class="card red"><div class="lbl">Accounts Locked</div><div class="val" id="rdp-locked">—</div></div>
+      <div class="card blue"><div class="lbl">Protocol</div><div class="val" style="font-size:14px;padding-top:8px">RDP/3389</div></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h2>Attack timeline</h2><canvas id="rdpChart" height="120"></canvas></div>
+      <div class="panel"><h2>IP table</h2>
+        <table><thead><tr><th>IP</th><th>Attempts</th><th>Severity</th><th>Target</th></tr></thead>
+        <tbody id="rdp-table"><tr><td colspan="4" style="color:#8b949e;text-align:center">Memuat...</td></tr></tbody></table>
       </div>
     </div>
   </div>
@@ -372,6 +437,19 @@ async function fetchData(){
       <td style="font-weight:600">${r.count}</td>
       <td><span class="badge ${r.severity}">${r.severity}</span></td>
       <td style="color:#8b949e;font-size:11px">${r.shares||'—'}</td></tr>`).join('');}
+    document.getElementById('rdp-total').textContent=d.rdp.total;
+    document.getElementById('rdp-ips').textContent=d.rdp.unique;
+    document.getElementById('rdp-locked').textContent=d.rdp.table.filter(r=>r.locked).length;
+    const rdpl=Object.keys(d.rdp.timeline).map(h=>h.replace('T',' ')+':00');
+    const rdpv=Object.values(d.rdp.timeline);
+    makeChart('rdpChart',rdpl,rdpv,'#a371f7');
+    const rdptb=document.getElementById('rdp-table');
+    if(!d.rdp.table.length){rdptb.innerHTML='<tr><td colspan="4" style="color:#8b949e;text-align:center">Tidak ada data</td></tr>';}
+    else{rdptb.innerHTML=d.rdp.table.map(r=>`<tr>
+      <td style="font-family:monospace;color:#58a6ff">${r.ip}</td>
+      <td style="font-weight:600">${r.count}</td>
+      <td><span class="badge ${r.severity}">${r.severity}</span></td>
+      <td style="color:#8b949e;font-size:11px">${r.users||'—'}</td></tr>`).join('');}
     const rel=document.getElementById('recent-list');
     rel.innerHTML=d.recent.map(a=>{
       const cls=a.level>=10?'r-h':a.level>=7?'r-m':'r-l';
