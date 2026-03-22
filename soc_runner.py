@@ -44,20 +44,65 @@ def get_token():
 
 # ─── STEP 2: AMBIL ALERT ─────────────────────────────────────
 def get_alerts():
-    step("Mengambil alert brute force dari log...")
-    result = subprocess.run(
+    # Brute force SSH
+    result_ssh = subprocess.run(
         ['sudo', 'grep', '-E', '"id":"60122"|"id":"60115"', ALERT_LOG],
         capture_output=True, text=True
     )
-    alerts = []
-    for line in result.stdout.strip().split('\n'):
+    # Web attacks (SQLi)
+    result_web = subprocess.run(
+        ['sudo', 'grep', '-E', '"id":"31103"|"id":"31104"|"id":"31105"|"id":"31152"|"id":"31170"|"id":"31171"', ALERT_LOG],
+        capture_output=True, text=True
+    )
+
+    alerts_ssh = []
+    for line in result_ssh.stdout.strip().split('\n'):
         if line:
             try:
-                alerts.append(json.loads(line))
+                a = json.loads(line)
+                a['_attack_type'] = 'brute_force'
+                alerts_ssh.append(a)
             except:
                 pass
-    ok(f"{len(alerts)} alert ditemukan")
-    return alerts
+
+    alerts_web = []
+    for line in result_web.stdout.strip().split('\n'):
+        if line:
+            try:
+                a = json.loads(line)
+                a['_attack_type'] = 'web_attack'
+                alerts_web.append(a)
+            except:
+                pass
+
+    result_privesc = subprocess.run(
+        ['sudo', 'grep', '-E', '"id":"61618"|"id":"61634"|"id":"61638"|"id":"61138"|"id":"100001"|"id":"100002"|"id":"100003"', ALERT_LOG],
+        capture_output=True, text=True
+    )
+    alerts_privesc = []
+    for line in result_privesc.stdout.strip().split('\n'):
+        if line:
+            try:
+                a = json.loads(line)
+                a['_attack_type'] = 'privesc'
+                alerts_privesc.append(a)
+            except: pass
+
+    result_smb = subprocess.run(
+        ['sudo', 'grep', '-E', '"id":"92652"|"id":"60104"|"id":"60205"', ALERT_LOG],
+        capture_output=True, text=True
+    )
+    alerts_smb = []
+    for line in result_smb.stdout.strip().split('\n'):
+        if line:
+            try:
+                a = json.loads(line)
+                a['_attack_type'] = 'smb'
+                alerts_smb.append(a)
+            except: pass
+
+    ok(f"{len(alerts_ssh)} SSH | {len(alerts_web)} web | {len(alerts_privesc)} privesc | {len(alerts_smb)} SMB alert")
+    return alerts_ssh + alerts_web + alerts_privesc + alerts_smb
 
 # ─── STEP 3: PARSE & TRIAGE ──────────────────────────────────
 def parse_alerts(alerts):
@@ -95,7 +140,122 @@ def parse_alerts(alerts):
     ok(f"Triage selesai — {len(ip_data)} unique IP")
     return ip_data
 
+def parse_web_alerts(alerts):
+    """Parse web attack alerts."""
+    ip_data = {}
+    for alert in [a for a in alerts if a.get('_attack_type') == 'web_attack']:
+        src_ip    = alert.get('data', {}).get('srcip', 'Unknown')
+        url       = alert.get('data', {}).get('url', '')
+        rule_id   = alert.get('rule', {}).get('id', '')
+        rule_desc = alert.get('rule', {}).get('description', '')
+        timestamp = alert.get('timestamp', '')
+
+        # Kategorikan jenis serangan
+        if rule_id in ('31103', '31152', '31170', '31171'):
+            attack_cat = 'SQL Injection'
+        elif rule_id == '31105':
+            attack_cat = 'XSS'
+        elif rule_id == '31104':
+            attack_cat = 'Common Web Attack'
+        elif rule_id == '31120':
+            attack_cat = 'LFI'
+        else:
+            attack_cat = 'Web Attack'
+        if src_ip not in ip_data:
+            ip_data[src_ip] = {
+                'count':      0,
+                'categories': set(),
+                'urls':       [],
+                'first_seen': timestamp,
+                'last_seen':  timestamp,
+            }
+
+        ip_data[src_ip]['count'] += 1
+        ip_data[src_ip]['categories'].add(attack_cat)
+        if url not in ip_data[src_ip]['urls']:
+            ip_data[src_ip]['urls'].append(url)
+        ip_data[src_ip]['last_seen'] = timestamp
+
+    # Convert set to list
+    for ip in ip_data:
+        ip_data[ip]['categories'] = list(ip_data[ip]['categories'])
+
+    return ip_data
+
 # ─── STEP 4: SEVERITY SCORING ────────────────────────────────
+
+def parse_privesc_alerts(alerts):
+    ip_data = {}
+    for alert in [a for a in alerts if a.get('_attack_type') == 'privesc']:
+        agent   = alert.get('agent', {}).get('name', 'Unknown')
+        rule_id = alert.get('rule', {}).get('id', '')
+        ts      = alert.get('timestamp', '')
+        proc    = alert.get('data', {}).get('win', {}).get('eventdata', {}).get('image', '')
+
+        if agent not in ip_data:
+            ip_data[agent] = {
+                'count':      0,
+                'processes':  set(),
+                'rule_ids':   set(),
+                'first_seen': ts,
+                'last_seen':  ts,
+            }
+        ip_data[agent]['count'] += 1
+        ip_data[agent]['rule_ids'].add(rule_id)
+        if proc:
+            ip_data[agent]['processes'].add(proc.split('\\')[-1])
+        ip_data[agent]['last_seen'] = ts
+
+    for agent in ip_data:
+        ip_data[agent]['processes'] = list(ip_data[agent]['processes'])
+        ip_data[agent]['rule_ids']  = list(ip_data[agent]['rule_ids'])
+    return ip_data
+
+
+def parse_smb_alerts(alerts):
+    """Parse SMB attack alerts."""
+    ip_data = {}
+    for alert in [a for a in alerts if a.get('_attack_type') == 'smb']:
+        eventdata = alert.get('data', {}).get('win', {}).get('eventdata', {})
+        rule_id   = alert.get('rule', {}).get('id', '')
+        timestamp = alert.get('timestamp', '')
+
+        src_ip = (
+            eventdata.get('ipAddress') or
+            eventdata.get('sourceNetworkAddress') or
+            'Unknown'
+        )
+        username = (
+            eventdata.get('subjectUserName') or
+            eventdata.get('targetUserName') or
+            'Unknown'
+        )
+        share = eventdata.get('shareName', 'Unknown')
+
+        if src_ip not in ip_data:
+            ip_data[src_ip] = {
+                'count':      0,
+                'usernames':  set(),
+                'shares':     set(),
+                'anonymous':  False,
+                'first_seen': timestamp,
+                'last_seen':  timestamp,
+            }
+
+        ip_data[src_ip]['count'] += 1
+        ip_data[src_ip]['usernames'].add(username)
+        if share and share != 'Unknown':
+            ip_data[src_ip]['shares'].add(share)
+        if 'ANONYMOUS' in username.upper():
+            ip_data[src_ip]['anonymous'] = True
+        ip_data[src_ip]['last_seen'] = timestamp
+
+    for ip in ip_data:
+        ip_data[ip]['usernames'] = list(ip_data[ip]['usernames'])
+        ip_data[ip]['shares']    = list(ip_data[ip]['shares'])
+
+    return ip_data
+
 def get_severity(count, locked):
     if locked or count >= 10:
         return "CRITICAL", "🔴"
@@ -324,7 +484,22 @@ if __name__ == "__main__":
 
     # Step 6 — Print report
     alert_now = print_alert_report(ip_data, len(alerts))
-
+    # Web attack report
+    web_data = parse_web_alerts(alerts)
+    if web_data:
+        print(f"\n{'='*62}")
+        print(f"  WEB ATTACK REPORT")
+        print(f"{'='*62}")
+        for ip, info in web_data.items():
+            severity = "CRITICAL" if info['count'] >= 50 else "HIGH" if info['count'] >= 10 else "MEDIUM"
+            icon = "🔴" if severity == "CRITICAL" else "🟠" if severity == "HIGH" else "🟡"
+            print(f"\n  {icon}  Severity   : {severity}")
+            print(f"     Source IP  : {ip}")
+            print(f"     Attempts   : {info['count']}")
+            print(f"     Categories : {', '.join(info['categories'])}")
+            print(f"     First seen : {info['first_seen'][:19]}")
+            print(f"     Last seen  : {info['last_seen'][:19]}")
+            print(f"  {'─'*54}")
     # Step 7 — AI analysis
     ai_report = analyze_with_claude(ip_data, len(alerts))
     if ai_report:
@@ -332,6 +507,45 @@ if __name__ == "__main__":
         print("  CLAUDE AI — SOC INVESTIGATION REPORT")
         print(f"{'='*62}")
         print(ai_report)
+
+    # Privesc report
+    privesc_data = parse_privesc_alerts(alerts)
+    if privesc_data:
+        print(f"\n{'='*62}")
+        print(f"  PRIVILEGE ESCALATION REPORT")
+        print(f"{'='*62}")
+        for agent, info in privesc_data.items():
+            severity = "CRITICAL" if info['count'] >= 10 else "HIGH" if info['count'] >= 5 else "MEDIUM"
+            icon = "🔴" if severity == "CRITICAL" else "🟠" if severity == "HIGH" else "🟡"
+            procs = ', '.join(info['processes'][:5]) if info['processes'] else 'Unknown'
+            print(f"\n  {icon}  Severity    : {severity}")
+            print(f"     Agent      : {agent}")
+            print(f"     Events     : {info['count']}")
+            print(f"     Processes  : {procs}")
+            print(f"     First seen : {info['first_seen'][:19]}")
+            print(f"     Last seen  : {info['last_seen'][:19]}")
+            print(f"  {'─'*54}")
+
+    # SMB report
+    smb_data = parse_smb_alerts(alerts)
+    if smb_data:
+        print(f"\n{'='*62}")
+        print(f"  SMB ATTACK REPORT")
+        print(f"{'='*62}")
+        for ip, info in smb_data.items():
+            severity = "CRITICAL" if info['anonymous'] or info['count'] >= 10 else "HIGH" if info['count'] >= 5 else "MEDIUM"
+            icon = "🔴" if severity == "CRITICAL" else "🟠" if severity == "HIGH" else "🟡"
+            users  = ', '.join(info['usernames'][:3])
+            shares = ', '.join(info['shares'][:3]) if info['shares'] else 'None detected'
+            print(f"\n  {icon}  Severity    : {severity}")
+            print(f"     Source IP   : {ip}")
+            print(f"     Attempts    : {info['count']}")
+            print(f"     Users       : {users}")
+            print(f"     Shares      : {shares}")
+            print(f"     Anonymous   : {'YES ⚠️' if info['anonymous'] else 'No'}")
+            print(f"     First seen  : {info['first_seen'][:19]}")
+            print(f"     Last seen   : {info['last_seen'][:19]}")
+            print(f"  {'─'*54}")
 
     # Step 8 — Save
     step("Menyimpan semua laporan...")
