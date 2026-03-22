@@ -4,7 +4,7 @@
 
 ---
 
-## 📋 Daftar Isi
+## Daftar Isi
 
 - [Tentang Project](#-tentang-project)
 - [Arsitektur Sistem](#-arsitektur-sistem)
@@ -20,7 +20,7 @@
 
 ---
 
-## 📌 Tentang Project
+## Tentang Project
 
 Project ini merupakan simulasi lingkungan SOC yang dibangun untuk keperluan portofolio sebagai **SOC Analyst**. Lab ini mensimulasikan skenario serangan nyata, mendeteksinya menggunakan Wazuh SIEM, lalu merespons secara otomatis menggunakan kombinasi Python, Claude AI, Wazuh Active Response, dan Telegram Bot.
 
@@ -32,7 +32,7 @@ Project ini merupakan simulasi lingkungan SOC yang dibangun untuk keperluan port
 
 ---
 
-## 🏗️ Arsitektur Sistem
+## Arsitektur Sistem
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -92,41 +92,41 @@ Wazuh Agent ──────► Wazuh Manager
 
 ---
 
-## ✨ Fitur Utama
+## Fitur Utama
 
-### 🔍 Deteksi Multi-Attack Otomatis
+### Deteksi Multi-Attack Otomatis
 - Monitoring alert Wazuh tiap 5 menit via crontab
 - Mendeteksi 5 jenis serangan sekaligus
 - Skip otomatis jika tidak ada alert baru (anti-spam)
 
-### ⚡ Auto Response
+### Auto Response
 - Block IP attacker otomatis via **Wazuh Active Response**
 - Timeout 600 detik, trigger untuk severity HIGH dan CRITICAL
 
-### 📊 Severity Scoring
+### Severity Scoring
 | Level | Kondisi |
 |-------|---------|
 | 🔴 CRITICAL | ≥ 10 percobaan ATAU account locked out |
 | 🟠 HIGH | ≥ 5 percobaan |
 | 🟡 MEDIUM | < 5 percobaan |
 
-### 🤖 AI Investigation Report
+### AI Investigation Report
 - Integrasi **Claude AI (Anthropic)** untuk analisis mendalam
 - Laporan mencakup Executive Summary, Detail Insiden, MITRE ATT&CK Mapping, Rekomendasi
 - Output format Markdown profesional
 
-### 📱 Notifikasi Telegram Real-time
+### Notifikasi Telegram Real-time
 - Notifikasi otomatis ke Telegram Bot saat serangan terdeteksi
 - Ringkasan lengkap per jenis serangan
 
-### 🖥️ Dashboard Web 6 Tab Real-time
+### Dashboard Web 6 Tab Real-time
 - Auto-refresh tiap 30 detik
 - 6 tab: SSH | Web | Privesc | SMB | RDP | Recent Alerts
 - Attack timeline chart, IP analysis table, severity badges
 
 ---
 
-## 🎯 Attack Coverage
+## Attack Coverage
 
 | Fase | Jenis Serangan | Tool | Protocol | Rule ID |
 |------|---------------|------|----------|---------|
@@ -153,7 +153,7 @@ Wazuh Agent ──────► Wazuh Manager
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Komponen | Teknologi |
 |----------|-----------|
@@ -171,7 +171,7 @@ Wazuh Agent ──────► Wazuh Manager
 
 ---
 
-## 📁 Struktur Project
+## Struktur Project
 
 ```
 soc-project/
@@ -192,7 +192,7 @@ soc-project/
 
 ---
 
-## ⚙️ Setup & Instalasi
+## Setup & Instalasi
 
 ### Prerequisites
 - VirtualBox
@@ -306,22 +306,22 @@ hydra -l attacker -P pass.txt rdp://192.168.1.11 -t 1 -V
 
 ---
 
-## 📸 Dashboard
+## Dashboard
 
 Dashboard web real-time dengan 6 tab di `http://192.168.1.10:5000`
 
 | Tab | Konten |
 |-----|--------|
-| 🔐 SSH Brute Force | Attempts, timeline, IP table |
-| 🌐 Web Attacks | SQLi, XSS, LFI detection |
-| ⚡ Privilege Escalation | Sysmon events, suspicious processes |
-| 🗂 SMB Attack | Anonymous access, share enumeration |
-| 🖥 RDP Brute Force | RDP attempts, timeline |
-| 🕐 Recent Alerts | All alert types real-time |
+|  SSH Brute Force | Attempts, timeline, IP table |
+|  Web Attacks | SQLi, XSS, LFI detection |
+|  Privilege Escalation | Sysmon events, suspicious processes |
+|  SMB Attack | Anonymous access, share enumeration |
+|  RDP Brute Force | RDP attempts, timeline |
+|  Recent Alerts | All alert types real-time |
 
 ---
 
-## 📈 Hasil & Temuan
+## Hasil & Temuan
 
 | Metrik | Hasil |
 |--------|-------|
@@ -344,9 +344,9 @@ Dashboard web real-time dengan 6 tab di `http://192.168.1.10:5000`
 
 ---
 
-## 📬 Kontak
+## Kontak
 
-Dibuat oleh **KaiX** sebagai bagian dari SOC Analyst Portfolio Lab.
+Dibuat oleh **Saya** sebagai bagian dari SOC Analyst Portfolio Lab.
 
 - GitHub: [github.com/humanbetired](https://github.com/humanbetired)
 
