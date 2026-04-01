@@ -240,16 +240,10 @@ soc-project/
 |   |── recovery_miner.ps1     # Miner recovery
 |   └── recovery_reverseshell.ps1
 |── active-response/
-|   |── kill-ransomware.sh
-|   |── kill-keylogger.sh
-|   |── kill-miner.sh
-|   └── kill-reverseshell.sh
-|── reports/
-|   |── alert_*.txt            # Alert reports
-|   └── ai_report_*.md         # AI investigation reports
-└── logs/
-    |── cron.log
-    └── last_count.txt
+    |── kill-ransomware.sh
+    |── kill-keylogger.sh
+    |── kill-miner.sh
+    └── kill-reverseshell.sh
 ```
 
 ---
