@@ -176,7 +176,6 @@ Each malware scenario follows: Prevention → Detection → Response → Recover
 ### Infrastructure & SIEM
 
 <!-- Screenshot: Wazuh Dashboard overview showing active agents and alert summary -->
-![Wazuh Dashboard]
 <img width="2879" height="1555" alt="image" src="https://github.com/user-attachments/assets/13c57ad3-c6c2-47b0-8491-84fbf68ded4a"/>
 
 <!-- Screenshot: Three VM setup in VirtualBox — Lubuntu server, Windows target, Kali attacker -->
