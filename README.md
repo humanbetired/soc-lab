@@ -173,27 +173,14 @@ Each malware scenario follows: Prevention → Detection → Response → Recover
 
 ## Screenshots
 
-### Infrastructure & SIEM
+### Wazuh Dashboard
+![Wazuh Dashboard](assets/wazuh_dashboard.png)
 
-<!-- Screenshot: Wazuh Dashboard overview showing active agents and alert summary -->
-<img width="2879" height="1555" alt="image" src="https://github.com/user-attachments/assets/13c57ad3-c6c2-47b0-8491-84fbf68ded4a"/>
+### SOC Dashboard
+![SOC Dashboard](assets/SOC_Dashboard.png)
 
-<!-- Screenshot: Three VM setup in VirtualBox — Lubuntu server, Windows target, Kali attacker -->
-<img width="2879" height="1798" alt="image" src="https://github.com/user-attachments/assets/96f4b372-e7f8-483b-acb2-6ff8747b17f9" />
-<img width="1365" height="720" alt="image" src="https://github.com/user-attachments/assets/3877d4b7-3ff3-43b7-add2-e6aa5b737d13" />
-
-
-### Lab 1 — Attack Detection
-<img width="1220" height="2712" alt="image" src="https://github.com/user-attachments/assets/fb2b2dac-48de-4893-a676-c7f619382996" />
-
-### Lab 2 — Malware Simulation
-<img width="1220" height="2712" alt="image" src="https://github.com/user-attachments/assets/32f76954-7594-4049-a9ba-8ae391c536de" />
-<img width="1220" height="2712" alt="image" src="https://github.com/user-attachments/assets/20e65773-230d-4ee7-be6e-3b24870f3f79" />
-
-### Automation & Response
-
-<!-- Screenshot: Flask dashboard showing all 6 tabs with real-time alert data -->
-<img width="2879" height="1554" alt="image" src="https://github.com/user-attachments/assets/2e03fdb8-6859-4182-80e0-26f2fb7d7ec8" />
+### Recent Alerts
+![Recent Alerts](assets/recent_alerts.png)
 
 
 ---
